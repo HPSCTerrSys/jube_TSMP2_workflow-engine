@@ -1,0 +1,268 @@
+# -------------------------------------------------------------------------------------------------
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2025 Ana González-Nicolás <a.gonzalez-nicolas@fz-juelich.de>
+#
+# -------------------------------------------------------------------------------------------------
+# TO DOs:
+#
+# -------------------------------------------------------------------------------------------------
+# Section 0: Preamble
+# -------------------------------------------------------------------------------------------------
+# The name of the benchmark
+name: TSMP2_WFE
+
+# Working directory of the workflow step
+# Set the outpath to `/dev/null` to force the user to specify an output path manually
+# jube -v run -r -e --tag <machineTag> <combinationTag> --outpath ./outpath  jube_tsmp2_build.yml 
+outpath: /dev/null
+
+# -------------------------------------------------------------------------------------------------
+# Section 1: Parameter Configuration
+# -------------------------------------------------------------------------------------------------
+#
+# Make auxiliary source/files available to the workflow
+# The locations can be relative to the jube file
+# .../benchmark/jube/jube_tsmp2_build.yml
+#fileset:
+#  - name: auxcases
+#    copy: /p/project1/cslts/shared_data/CI_TSMP2/${combination_name}/${test_case}/*
+#
+parameterset:
+  # 0. System specific information running the benchmark
+  #    Tags for each machine: jureca, juwels, jupiter, jusuf
+  - name: systemInfo
+    parameter:
+      - {name: system_name, tag: jureca, _: JURECADC}
+      - {name: system_name, tag: juwels, _: JUWELS}
+      - {name: system_name, tag: jupiter, _: JUPITER}
+      - {name: system_name, tag: jusuf, _: JUSUF}
+
+  # 1. File name to check run is finished   
+  - name: finished_run
+    parameter:
+      - {name: done_run, _: job_status.log}
+      
+  # 2. TSMP2-components for the build
+  #    Tags for each TSMP2 component: icon, eclm, parflow
+  #    If no component-combination is specified, it will build by default "eclm" 
+  #    If no environment is specified, it will use "default.2025.env"
+  #    a) combination_str   --> components for the build command
+  #    b) model_id          --> model ID to use for the building folders
+  #    c) env_str           --> tag that defines the environment
+  #
+  - name: combinationTsmp
+    parameter: 
+  #  
+  # 2.a For the build command:
+    - {name: combination_str, tag: icon, _: --icon}
+    - {name: combination_str, tag: eclm, _: --eclm}
+    - {name: combination_str, tag: parflow, _: --parflow}
+    - {name: combination_str, tag: icon+eclm, _: --icon --eclm}
+    - {name: combination_str, tag: eclm+parflow, _: --parflow --eclm}
+    - {name: combination_str, tag: icon+eclm+parflow, _: --icon --eclm --parflow}
+    - {name: combination_str, tag: "!icon+!eclm+!parflow", _: --eclm}
+  #
+    # 2.b Model ID:
+    - {name: model_id, tag: icon, _: ICON}
+    - {name: model_id, tag: eclm, _: eCLM}
+    - {name: model_id, tag: parflow, _: ParFlow}
+    - {name: model_id, tag: icon+eclm, _: ICON-eCLM}
+    - {name: model_id, tag: eclm+parflow, _: eCLM-ParFlow}
+    - {name: model_id, tag: icon+eclm+parflow, _: ICON-eCLM-ParFlow}
+    - {name: model_id, tag: "!icon+!eclm+!parflow", _: eCLM}
+  #  
+  # 2.c Environment:
+    - {name: env_str, tag: jsc.2025.intel.psmpi, _: jsc.2025.intel.psmpi}
+    - {name: env_str, tag: jsc.2025.gnu.openmpi, _: jsc.2025.gnu.openmpi}
+    - {name: env_str, tag: jsc.2024.intel.psmpi, _: jsc.2024.intel.psmpi}
+    - {name: env_str, tag: jsc.2023.intel.psmpi, _: jsc.2023.intel.psmpi}
+    - {name: env_str, tag: default.2025.env, _: default.2025.env}
+    - {name: env_str, tag: ubuntu.gnu.openmpi, _: ubuntu.gnu.openmpi}
+    - {name: env_str, tag: uni-bonn.gnu.openmpi, _: uni-bonn.gnu.openmpi}
+    - {name: env_str, tag: "!jsc.2025.intel.psmpi+!jsc.2025.gnu.openmpi+!jsc.2024.intel.psmpi+!jsc.2023.intel.psmpi+!default.2025.env+!ubuntu.gnu.openmpi+!uni-bonn.gnu.openmpi", _: default.2025.env}    
+  
+  # 3. Execution mode
+  #    full = build + run
+  #    build = only build
+  #    run = only run (it skips build)
+  #    If no execution mode is defined, it will only build
+  #    To be able to use "run" mode, the combination build must have been build previously
+  #
+  - name: execMode
+    parameter:
+      # TO BUILD
+      - name: build_command
+        tag: full|build|!full+!build+!run
+        _: 
+           git clone -b master https://github.com/HPSCTerrSys/TSMP2_workflow-engine.git ;
+           wfe_dir=$(realpath TSMP2_workflow-engine) ;
+           cd ${wfe_dir} ;
+           echo $(pwd) ;
+           git submodule update --init ;
+           cd ${wfe_dir}/src/TSMP2 ;
+           echo $(pwd) ;
+           ls -ls ;
+           echo "build_tsmp2.sh ${combination_str} --env ./env/${env_str}" ;
+           bash build_tsmp2.sh ${combination_str} --env ./env/${env_str} ;
+           mkdir ${jube_benchmark_home}/bin ;
+           cp -r ./bin/${system_name}_${model_id} ${jube_benchmark_home}/bin/${system_name}_${model_id}_${env_str} ;
+           echo "Build ${system_name}_${model_id}_${env_str} finished"
+      #
+      # TO NOT BUILD 
+      # To save time when one build for that combination already exists
+      # combination: systemname_components_environment. For instance: JURECADC_ICON-eCLM-ParFlow_jsc.2025.gnu.openmpi
+      - name: build_command
+        tag: run
+        _: 
+           git clone -b master https://github.com/HPSCTerrSys/TSMP2_workflow-engine.git ;
+           wfe_dir=$(realpath TSMP2_workflow-engine) ;
+           cd ${wfe_dir} ;
+           echo $(pwd) ;
+           git submodule update --init ;
+           cd ${wfe_dir}/src/TSMP2 ;
+           echo "current_dir= $(pwd)" ;
+           ls -ls ;           
+           mkdir bin ;
+           cp -r ${jube_benchmark_home}/bin/${system_name}_${model_id}_${env_str} ./bin/${system_name}_${model_id} ;
+           echo "Copy build ${system_name}_${model_id} finished"
+      #
+      # TO RUN 
+      - name: run_command
+        tag: full|run
+        _: 
+           cd ${jube_benchmark_rundir}/000001_build/work/TSMP2_workflow-engine/ctl ;
+           echo "current_dir= $(pwd)" ;
+           sed -i -e 's/MODEL_ID=ICON-eCLM-ParFlow/MODEL_ID=${model_id}/g' master.conf ; 
+           sed -i -e 's/lsim=( true true true )/lsim=( true true false )/g' master.conf ; 
+           echo "model_id= ${model_id}" ;
+           echo "current_dir= $(pwd)" ;
+           cd sim_ctl ;
+           sed -i -e 's/TIME_END=$(date +%s)/TIME_END=$(date +%s) ; touch ready/g' sim_run.sh ;
+           cd .. ;
+           bash control_tsmp2.sh ;
+           echo "current_dir= $(pwd)" ;
+           echo "Run bash control_tsmp2.sh for ${model_id}"   
+      #
+      # TO NOT RUN
+      - name: run_command
+        tag: build|!full+!build+!run
+        _: echo 'Run nothing'
+
+  # 4. Download data mode
+  #    data = it downloads data
+  #    nodata = it doesn't download data
+  #    If no download data mode is defined, it will download the data by default
+  #    To use the "nodata" mode, data must have been downloaded previously
+  #
+  - name: downloadData
+    parameter:
+      # TO DOWNLOAD DATA
+      # Downloads data and saves it on a folder outside the \outpath so it can be used for other jube-submissions
+      - name: download_command
+        tag: data|(!data+!nodata)
+        _: 
+           mkdir ${jube_benchmark_home}/download_data ;
+           cd ${jube_benchmark_home}/download_data ;
+           wget -x -l 8 -nH --cut-dirs=4 -e robots=off --recursive --no-parent --reject="index.html*" https://datapub.fz-juelich.de/slts/tsmp_testcases/data/tsmp2_eur11_wfe_iniforc/ 
+           cd ${jube_wp_abspath}/build ;
+           echo "current_dir= $(pwd) " ;
+           mkdir -p TSMP2_workflow-engine/dta/forcing/eclm ;
+           mkdir -p TSMP2_workflow-engine/dta/forcing/icon/latbc ;
+           ln -sf ${jube_benchmark_home}/download_data/forcing/eclm/forcing TSMP2_workflow-engine/dta/forcing/eclm/forcing ;
+           ln -sf ${jube_benchmark_home}/download_data/forcing/icon/latbc/201707 TSMP2_workflow-engine/dta/forcing/icon/latbc/201707 ;
+           ln -sf ${jube_benchmark_home}/download_data/restart/20170630 TSMP2_workflow-engine/dta/restart/20170630 ;
+           echo "Download data finished"
+      #
+      # TO NOT DOWNLOAD DATA, DATA is LINKED
+      - name: download_command
+        tag: nodata
+        _: 
+           cd ${jube_wp_abspath}/build ;
+           echo "current_dir= $(pwd) " ;           
+           mkdir TSMP2_workflow-engine/dta/forcing/eclm ; 
+           mkdir -p TSMP2_workflow-engine/dta/forcing/icon/latbc ; 
+           ln -sf ${jube_benchmark_home}/download_data/forcing/eclm/forcing TSMP2_workflow-engine/dta/forcing/eclm/forcing ;
+           ln -sf ${jube_benchmark_home}/download_data/forcing/icon/latbc/201707 TSMP2_workflow-engine/dta/forcing/icon/latbc/201707 ;
+           ln -sf ${jube_benchmark_home}/download_data/restart/20170630 TSMP2_workflow-engine/dta/restart/20170630 ;
+           echo "Data is not downloaded but linked" 
+
+# ----------------------------------------------------------------------------------------------------------------
+# Section 2: Execution Steps
+# ----------------------------------------------------------------------------------------------------------------
+step:
+ # 0. Check if systemname is set
+  - name: input
+    use:
+      - systemInfo
+    do:
+      - echo "Do nothing"
+      
+ # 1. Build and Install
+  - name: build
+    depend: input 
+    use:
+     - systemInfo
+     - combinationTsmp
+     - execMode     
+    do: ${build_command}
+     
+  # 2. Download data
+  - name: download
+    depend: build
+    use:  
+      - downloadData
+    do: ${download_command}
+
+  # 2. Run test
+  - name: execute
+    depend: download
+    use:  
+      - systemInfo
+      - combinationTsmp
+      - execMode
+      - finished_run
+    do:
+      - done_file: ${jube_benchmark_rundir}/000001_build/work/TSMP2_workflow-engine/ctl/$done_run
+        _: ${run_command}
+      - echo "true" > success
+
+  # 3. Verify the results of the simulation
+  - name: verify
+    depend: execute
+    do:
+      - |
+        execute_step=$(cat execute/success)
+        if [[ "$execute_step" == "true" ]]; then
+          echo "true"
+        else
+          echo "false"
+        fi
+
+# -------------------------------------------------------------------------------------------------
+# Section 3: Analysis of Results
+# -------------------------------------------------------------------------------------------------
+# patternset:
+  # - name: runtime_pattern
+    # pattern:
+      # - name: runtime
+        # tag: eclm|(!icon+!eclm+!parflow)
+        # type: float
+        # _: 'Total_time$jube_pat_bl$jube_pat_fp'
+
+# analyser:
+  # - name: bench_info
+    # analyse:
+      # step: execute
+      # tag: full|run
+      # file:
+        # - use: runtime_pattern
+          # _: ./eclm_times.out        
+
+# result:
+  # table:
+    # - name: result
+      # style: csv
+      # column:
+        # - { title: "system", _: system_name}
+        # - { title: "components", _: model_id }
+        # - success           
