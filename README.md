@@ -60,20 +60,20 @@ It will use default options on `juwels`: build of eclm with environment `default
 
 `execution_mode`: allows to choose among `full` (build + run), `build` (only build), and `run` (only run). If no execution mode is defined, it will only build. To use `run` mode, the combination build must have been built previously. Where the combination build is `<machine + components + environment>`.
 
-`download_data`: allows to choose between `data` (downloads data) and `nodata` (no data is downloaded). If no download data mode is defined, it will download the data by default. To use the `nodata` mode, data must have been downloaded previously.
+`download_data`: allows to choose between `data` (downloads data) and `nodata` (no data is downloaded). If no download data mode is defined, the data will not be downloaded. To use the `nodata` mode, data must have been downloaded previously.
 
 `TSMP_components`: allows to choose the components for the build. Components: `icon`, `eclm`, `parflow`. If no component-combination is specified, it will build by default `eclm`.
 
-`environment`: allows to choose among several defined environments. If no environment is specified, it will use `default.2025.env`.
+`environment`: allows to choose among several defined environments. When no environment or `default.2025.env` are spcified, it will use `jsc.2025.gnu.openmpi`.
 
 
 | Tag Name         | Tag Options                                                                 | Default Tag             | Type of Tag                             |
 |------------------|-----------------------------------------------------------------------------|-------------------------|-----------------------------------------|
 | system_name      | jureca, juwels, jupiter, jusuf                                              | no default option, needs to be defined | exclusive (only one can be selected)    |
 | execution_mode   | full, build, run                                                             | build                   | exclusive (only one can be selected)     |
-| download_data    | data, nodata                                                                 | data                    | exclusive (only one can be selected)     |
+| download_data    | data, nodata                                                                 | nodata                    | exclusive (only one can be selected)     |
 | TSMP_components | icon, eclm, parflow                                                          | eclm                    | multiple choices allowed                 |
-| environment      | jsc.2025.intel.psmpi  <br> jsc.2025.gnu.openmpi  <br> jsc.2024.intel.psmpi <br> jsc.2023.intel.psmpi <br> default.2025.env <br> ubuntu.gnu.openmpi <br> uni-bonn.gnu.openmpi | default.2025.env        | exclusive (only one can be selected)     |
+| environment      | jsc.2025.intel.psmpi  <br> jsc.2025.gnu.openmpi  <br> jsc.2024.intel.psmpi <br> jsc.2023.intel.psmpi <br> default.2025.env <br> ubuntu.gnu.openmpi <br> uni-bonn.gnu.openmpi | jsc.2025.gnu.openmpi       | exclusive (only one can be selected)     |
 
 ### Directories
 - Results of the benchmark will be stored at `outpath`:
