@@ -51,7 +51,7 @@ jube -v run -r -e --tag juwels build icon eclm parflow nodata jsc.2025.intel.psm
 ```
 jube -v run -r -e --tag juwels --outpath ./outpath jube_tsmp2_wfe.yml
 ```   
-It will use default options on `juwels`: build of eclm with environment `default.2025.env` and download of data.
+It will use default options on `juwels`: build of eclm with environment `default.2025.env` and doesn't download data.
 
 
 ### Tags
