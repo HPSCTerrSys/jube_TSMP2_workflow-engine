@@ -40,7 +40,7 @@ jube continue ./outpath
 ```
 jube -v run -r -e --tag jureca full icon eclm jsc.2025.gnu.openmpi --outpath ./outpath jube_tsmp2_wfe.yml
 ```
-Since no `download_data` is defined, it will download the data (since it uses the default option).
+Since no `download_data` is defined, it will NOT download the data (since it uses the default option).
 
 2) To only build a fully-coupled TSMP2 (`icon + eclm + parflow`) on `juwels` using the environment `jsc.2025.intel.psmpi` and no download data, the jube command would be:
 ```
